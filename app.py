@@ -1,18 +1,17 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-
-from agent import add_expense, budget_analyzer, savings_advisor, qa_tool, expenses
+from agent import add_expense, budget_analyzer, savings_advisor, qa_tool   # removed: , expenses
 from image_agent import qa_image_tool
 
+if "expenses" not in st.session_state:
+    st.session_state.expenses = []
+
 st.set_page_config(page_title="BudgetNest", layout="centered")
-
 st.title("🪺BudgetNest")
-
 st.write(
     "Track expenses, analyze your simple budget, get saving tips, and ask finance questions."
 )
-
 st.header("1. Add Expense")
 
 with st.form("add_expense_form"):
@@ -31,17 +30,22 @@ with st.form("add_expense_form"):
             st.error(msg)
         else:
             st.success(msg)
+            # also store in session so dashboard uses per-session data
+            st.session_state.expenses.append(
+                {"amount": float(amount), "category": category, "desc": description}
+            )
 
+# 2. Budget Analyzer
 st.header("2. Budget Analyzer")
 
 if st.button("Analyze Budget"):
-    summary = budget_analyzer()
+    summary = budget_analyzer(st.session_state.expenses)
     st.text(summary)
 
 st.header("3. Savings Advisor")
 if st.button("🚀 Get AI Saving Tips"):
     with st.spinner("Agent thinking... using tools..."):
-        tips = savings_advisor()
+        tips = savings_advisor(st.session_state.expenses)
     st.markdown(tips)
 
 st.header("4. Finance Q&A")
@@ -73,16 +77,13 @@ if st.button("Get Answer"):
 
 st.header("5. Dashboard")
 
-
-if expenses:
-    df = pd.DataFrame(expenses)
+if st.session_state.expenses:
+    df = pd.DataFrame(st.session_state.expenses)
     st.subheader("Expense Table")
     st.dataframe(df)
 
-
     st.subheader("Spending by Category")
     by_cat = df.groupby("category")["amount"].sum().reset_index()
-
 
     fig, ax = plt.subplots()
     ax.bar(by_cat["category"], by_cat["amount"])

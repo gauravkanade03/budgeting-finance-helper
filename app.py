@@ -3,10 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from agent import add_expense, budget_analyzer, savings_advisor, qa_tool, expenses
+from image_agent import qa_image_tool
 
-st.set_page_config(page_title="Budgeting & Finance Helper", layout="centered")
+st.set_page_config(page_title="BudgetNest", layout="centered")
 
-st.title("💰 Budgeting & Finance Helper")
+st.title("🪺BudgetNest")
 
 st.write(
     "Track expenses, analyze your simple budget, get saving tips, and ask finance questions."
@@ -45,20 +46,43 @@ if st.button("🚀 Get AI Saving Tips"):
 
 st.header("4. Finance Q&A")
 
-question = st.text_input("Ask a finance question (e.g., How can I save more on food?)")
+qa_question = st.text_input(
+    "Ask a finance question (you can also upload a bill / statement image below)"
+)
+
+qa_image = st.file_uploader(
+    "Optional: Upload bill / statement image (PNG / JPG)",
+    type=["png", "jpg", "jpeg"],
+)
+
 if st.button("Get Answer"):
-    answer = qa_tool(question)
-    st.write(answer)
+    if not qa_question:
+        st.warning("Please type your question first.")
+    else:
+        if qa_image is not None:
+            img_bytes = qa_image.getvalue()
+            with st.spinner("Analyzing image..."):
+                answer = qa_image_tool(qa_question, img_bytes)
+                st.image(qa_image, caption="Uploaded image", width=500)
+        else:
+            answer = qa_tool(qa_question)
+
+        st.write("**Question:**", qa_question)
+        st.write("**Answer:**")
+        st.write(answer)
 
 st.header("5. Dashboard")
+
 
 if expenses:
     df = pd.DataFrame(expenses)
     st.subheader("Expense Table")
     st.dataframe(df)
 
+
     st.subheader("Spending by Category")
     by_cat = df.groupby("category")["amount"].sum().reset_index()
+
 
     fig, ax = plt.subplots()
     ax.bar(by_cat["category"], by_cat["amount"])
